@@ -1,8 +1,15 @@
 {
   "compilerOptions": {
-    "module": "commonjs",
+    "module": "system",
     "target": "es5",
-    "declaration": true
+    "declaration": true,
+    "sourceMap": true,
+    "noEmitOnError": true,
+    "moduleResolution": "node",
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "noLib": false,
+    "preserveConstEnums": true
   },
   "files": [
     "angular-ts-decorators.ts"
