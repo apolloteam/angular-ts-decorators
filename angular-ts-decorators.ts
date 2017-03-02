@@ -1,3 +1,4 @@
+'use strict';
 import * as angular from 'angular';
 import 'reflect-metadata';
 
@@ -10,6 +11,7 @@ declare global {
     readonly name: string;
   }
 }
+
 enum Declarations { component, directive, pipe }
 
 const typeSymbol = 'custom:type';
@@ -26,11 +28,11 @@ export interface ModuleConfig {
   exports?: Array<Function>;
   providers?: Array<ng.IServiceProvider | ng.Injectable<Function>>;
   constants?: Object;
-  decorators?: {[name: string]: ng.Injectable<Function>};
+  decorators?: { [name: string]: ng.Injectable<Function> };
 }
 
 export interface ModuleDecoratedConstructor {
-  new(...args: Array<any>): ModuleDecorated;
+  new (...args: Array<any>): ModuleDecorated;
   module?: ng.IModule;
 }
 
@@ -43,25 +45,28 @@ export interface ComponentOptionsDecorated {
   selector: string;
   template?: string | ng.Injectable<(...args: Array<any>) => string>;
   templateUrl?: string | ng.Injectable<(...args: Array<any>) => string>;
-  transclude?: boolean | {[slot: string]: string};
-  require?: {[controller: string]: string};
+  transclude?: boolean | { [slot: string]: string };
+  require?: { [controller: string]: string };
+  controllerAs?: string;
 }
 
 export interface DirectiveOptionsDecorated {
   selector: string;
   multiElement?: boolean;
   priority?: number;
-  require?: string | string[] | {[controller: string]: string};
-  scope?: boolean | {[boundProperty: string]: string};
+  require?: string | string[] | { [controller: string]: string };
+  scope?: boolean | { [boundProperty: string]: string };
   template?: string | ((tElement: JQuery, tAttrs: ng.IAttributes) => string);
   templateNamespace?: string;
   templateUrl?: string | ((tElement: JQuery, tAttrs: ng.IAttributes) => string);
   terminal?: boolean;
-  transclude?: boolean | 'element' | {[slot: string]: string};
+  transclude?: boolean | 'element' | { [slot: string]: string };
+  controllerAs?: string;
+  bindToController?: boolean;
 }
 
 export interface DirectiveControllerConstructor {
-  new(...args: Array<any>): DirectiveController;
+  new (...args: Array<any>): DirectiveController;
 }
 
 export interface DirectiveController {
@@ -70,7 +75,7 @@ export interface DirectiveController {
 }
 
 export interface PipeTransformConstructor {
-  new(...args: Array<any>): PipeTransform;
+  new (...args: Array<any>): PipeTransform;
 }
 
 export interface PipeTransform {
@@ -83,8 +88,8 @@ export interface PipeTransform {
 export function NgModule({ declarations, imports, providers }: ModuleConfig) {
   return (Class: ModuleDecoratedConstructor) => {
     // module registration
-    const deps = imports ? imports.map(mod => typeof mod === 'string' ? mod : mod.name) : [];
-    const module = angular.module(Class.name, deps);
+    const deps: string[] = imports ? imports.map(mod => typeof mod === 'string' ? mod : mod.name) : [];
+    const module: angular.IModule = angular.module(Class.name, deps);
 
     // components, directives and filters registration
     declarations.forEach((declaration: any) => {
@@ -93,12 +98,15 @@ export function NgModule({ declarations, imports, providers }: ModuleConfig) {
         case Declarations.component:
           registerComponent(module, declaration);
           break;
+
         case Declarations.directive:
           registerDirective(module, declaration);
           break;
+
         case Declarations.pipe:
           registerPipe(module, declaration);
           break;
+
         default:
           console.error(
             `Can't find type metadata on ${declaration.name} declaration, did you forget to decorate it?
@@ -111,16 +119,19 @@ export function NgModule({ declarations, imports, providers }: ModuleConfig) {
     if (providers) {
       registerServices(module, providers);
     }
+
     // config and run blocks registration
     const { config, run } = Class.prototype;
     if (config) {
       config.$inject = annotate(config);
       module.config(config);
     }
+
     if (run) {
       run.$inject = annotate(run);
       module.run(run);
     }
+
     // expose angular module as static property
     Class.module = module;
   };
@@ -128,12 +139,14 @@ export function NgModule({ declarations, imports, providers }: ModuleConfig) {
 
 export function Component(decoratedOptions: ComponentOptionsDecorated) {
   return (ctrl: ng.IControllerConstructor) => {
-    const options: ng.IComponentOptions = {...decoratedOptions};
+    const options: ng.IComponentOptions = { ...decoratedOptions };
     options.controller = ctrl;
+    options['$inject'] = annotate(ctrl);
     const bindings = Reflect.getMetadata(bindingsSymbol, ctrl);
     if (bindings) {
       options.bindings = bindings;
     }
+
     Reflect.defineMetadata(nameSymbol, decoratedOptions.selector, ctrl);
     Reflect.defineMetadata(typeSymbol, Declarations.component, ctrl);
     Reflect.defineMetadata(optionsSymbol, options, ctrl);
@@ -141,19 +154,26 @@ export function Component(decoratedOptions: ComponentOptionsDecorated) {
 }
 
 export function Directive(decoratedOptions: DirectiveOptionsDecorated) {
-  return (ctrl: DirectiveControllerConstructor) => {
-    const options: ng.IDirective = {...decoratedOptions};
-    // deprecate restrict for directives and force attribute usage only
+  return (controller: DirectiveControllerConstructor) => {
+    const options: ng.IDirective = { ...decoratedOptions };
+
+    // deprecate restrict for directives and force attribute usage only.
     options.restrict = 'A';
-    const bindings = Reflect.getMetadata(bindingsSymbol, ctrl);
+    const bindings = Reflect.getMetadata(bindingsSymbol, controller);
     if (bindings) {
       options.scope = bindings;
       console.warn(`Using scope with directives is deprecated, you should consider writing it as a component.
       See: https://github.com/toddmotto/angular-styleguide#recommended-properties`);
     }
-    Reflect.defineMetadata(nameSymbol, decoratedOptions.selector, ctrl);
-    Reflect.defineMetadata(typeSymbol, Declarations.directive, ctrl);
-    Reflect.defineMetadata(optionsSymbol, options, ctrl);
+
+    let selector: string = decoratedOptions.selector;
+    if (!selector.length) {
+      selector = controller.name;
+    }
+
+    Reflect.defineMetadata(nameSymbol, selector, controller);
+    Reflect.defineMetadata(typeSymbol, Declarations.directive, controller);
+    Reflect.defineMetadata(optionsSymbol, options, controller);
   };
 }
 
@@ -172,7 +192,7 @@ export function Injectable(name?: string) {
   };
 }
 
-export function Pipe(options: {name: string}) {
+export function Pipe(options: { name: string }) {
   return (Class: PipeTransformConstructor) => {
     Reflect.defineMetadata(nameSymbol, options.name, Class);
     Reflect.defineMetadata(typeSymbol, Declarations.pipe, Class);
@@ -192,7 +212,7 @@ function registerDirective(module: ng.IModule, ctrl: DirectiveControllerConstruc
   const {compile, link} = ctrl.prototype;
   const isValid = compile && typeof compile === 'function' || link && typeof link === 'function';
   if (isValid) {
-    const directiveFunc =  (...args: Array<any>) => {
+    const directiveFunc = (...args: Array<any>) => {
       const instance = new ctrl(args);
       if (compile) {
         options.compile = compile.bind(instance);
@@ -200,12 +220,12 @@ function registerDirective(module: ng.IModule, ctrl: DirectiveControllerConstruc
       else if (link) {
         options.link = link.bind(instance);
       }
+
       return options;
     };
     directiveFunc.$inject = directiveFunc.$inject || annotate(ctrl);
     module.directive(name, directiveFunc);
-  }
-  else {
+  } else {
     console.error(`Directive ${ctrl.name} was not registered because no link or compile methods were provided`);
   }
 }
@@ -226,13 +246,11 @@ function registerServices(module: ng.IModule, services: Array<ng.IServiceProvide
     service.$inject = service.$inject || annotate(service);
     if (service.prototype.$get) {
       module.provider(name, service);
-    }
-    else {
+    } else {
       module.service(name, service);
     }
   });
 }
-
 
 function getComponentMetadata(component: ng.IComponentController) {
   return {
