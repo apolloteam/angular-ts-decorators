@@ -28,6 +28,7 @@
   "types": "angular-ts-decorators.d.ts",
   "files": [
     "angular-ts-decorators.js",
+    "angular-ts-decorators.js.map",
     "angular-ts-decorators.d.ts"
   ],
   "dependencies": {
