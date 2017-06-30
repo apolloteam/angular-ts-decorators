@@ -20,7 +20,8 @@ const bindingsSymbol = 'custom:bindings';
 const optionsSymbol = 'custom:options';
 
 /**
- * Interfaces
+ * ModuleConfig
+ * @export
  */
 export interface ModuleConfig {
   declarations: Array<ng.IComponentController | ng.Injectable<ng.IDirectiveFactory> | PipeTransform>;
@@ -31,16 +32,28 @@ export interface ModuleConfig {
   decorators?: { [name: string]: ng.Injectable<Function> };
 }
 
+/**
+ * ModuleDecoratedConstructor
+ * @export
+ */
 export interface ModuleDecoratedConstructor {
   new (...args: Array<any>): ModuleDecorated;
   module?: ng.IModule;
 }
 
+/**
+ * ModuleDecorated
+ * @export
+ */
 export interface ModuleDecorated {
   config?(...args: Array<any>): void;
   run?(...args: Array<any>): void;
 }
 
+/**
+ * ComponentOptionsDecorated
+ * @export
+ */
 export interface ComponentOptionsDecorated {
   selector: string;
   template?: string | ng.Injectable<(...args: Array<any>) => string>;
@@ -50,9 +63,29 @@ export interface ComponentOptionsDecorated {
   controllerAs?: string;
 }
 
+/**
+ * DirectiveOptionsDecorated
+ * @export
+ */
 export interface DirectiveOptionsDecorated {
   selector: string;
+  /**
+   * When this property is set to true (default is false), the HTML compiler will collect 
+   * DOM nodes between nodes with the attributes directive-name-start and directive-name-end, 
+   * and group them together as the directive elements. It is recommended that this feature 
+   * be used on directives which are not strictly behavioral (such as ngClick), 
+   * and which do not manipulate or replace child nodes (such as ngInclude).
+   */
   multiElement?: boolean;
+
+  /**
+   * When there are multiple directives defined on a single DOM element, sometimes it 
+   * is necessary to specify the order in which the directives are applied. 
+   * The priority is used to sort the directives before their compile functions get called. 
+   * Priority is defined as a number. Directives with greater numerical priority are compiled first. 
+   * Pre-link functions are also run in priority order, but post-link functions are run in reverse order. 
+   * The order of directives with the same priority is undefined. The default priority is 0.      
+   */
   priority?: number;
   require?: string | string[] | { [controller: string]: string };
   scope?: boolean | { [boundProperty: string]: string };
@@ -63,27 +96,45 @@ export interface DirectiveOptionsDecorated {
   transclude?: boolean | 'element' | { [slot: string]: string };
   controllerAs?: string;
   bindToController?: boolean;
+  restrict?: string;
 }
 
+/**
+ * DirectiveControllerConstructor
+ * @export
+ */
 export interface DirectiveControllerConstructor {
   new (...args: Array<any>): DirectiveController;
 }
 
+/**
+ * DirectiveController
+ * @export
+ */
 export interface DirectiveController {
   compile?: ng.IDirectiveCompileFn;
   link?: ng.IDirectiveLinkFn | ng.IDirectivePrePost;
 }
 
+/**
+ * PipeTransformConstructor
+ * @export
+ */
 export interface PipeTransformConstructor {
   new (...args: Array<any>): PipeTransform;
 }
 
+/**
+ * PipeTransform
+ * @export
+ */
 export interface PipeTransform {
   transform(...args: Array<any>): any;
 }
 
 /**
- * Decorators
+ * NgModule
+ * @export
  */
 export function NgModule({ declarations, imports, providers }: ModuleConfig) {
   return (Class: ModuleDecoratedConstructor) => {
@@ -108,7 +159,7 @@ export function NgModule({ declarations, imports, providers }: ModuleConfig) {
           break;
 
         default:
-          console.error(
+          console && console.error(
             `Can't find type metadata on ${declaration.name} declaration, did you forget to decorate it?
             Decorate your declarations using @Component, @Directive or @Pipe decorator.`
           );
@@ -137,6 +188,10 @@ export function NgModule({ declarations, imports, providers }: ModuleConfig) {
   };
 }
 
+/**
+ * Component
+ * @export
+ */
 export function Component(decoratedOptions: ComponentOptionsDecorated) {
   return (ctrl: ng.IControllerConstructor) => {
     const options: ng.IComponentOptions = { ...decoratedOptions };
@@ -153,16 +208,21 @@ export function Component(decoratedOptions: ComponentOptionsDecorated) {
   };
 }
 
+/**
+ * Directive
+ * @export
+ */
 export function Directive(decoratedOptions: DirectiveOptionsDecorated) {
   return (controller: DirectiveControllerConstructor) => {
     const options: ng.IDirective = { ...decoratedOptions };
 
-    // deprecate restrict for directives and force attribute usage only.
-    options.restrict = 'A';
+    // 
+    //// deprecate restrict for directives and force attribute usage only.
+    options.restrict = options.restrict || 'A';
     const bindings = Reflect.getMetadata(bindingsSymbol, controller);
     if (bindings) {
       options.scope = bindings;
-      console.warn(`Using scope with directives is deprecated, you should consider writing it as a component.
+      console && console.warn(`Using scope with directives is deprecated, you should consider writing it as a component.
       See: https://github.com/toddmotto/angular-styleguide#recommended-properties`);
     }
 
@@ -177,14 +237,26 @@ export function Directive(decoratedOptions: DirectiveOptionsDecorated) {
   };
 }
 
+/**
+ * Input
+ * @export
+ */
 export function Input(alias?: string) {
   return (target: Object, key: string) => addBindingToMetadata(target, key, '<', alias);
 }
 
+/**
+ * Output
+ * @export
+ */
 export function Output(alias?: string) {
   return (target: Object, key: string) => addBindingToMetadata(target, key, '&', alias);
 }
 
+/**
+ * Injectable
+ * @export
+ */
 export function Injectable(name?: string) {
   return (Class: any) => {
     name = name || Class.name;
@@ -192,6 +264,10 @@ export function Injectable(name?: string) {
   };
 }
 
+/**
+ * Pipe
+ * @export
+ */
 export function Pipe(options: { name: string }) {
   return (Class: PipeTransformConstructor) => {
     Reflect.defineMetadata(nameSymbol, options.name, Class);
@@ -200,16 +276,21 @@ export function Pipe(options: { name: string }) {
 }
 
 /**
- * Private functions
+ * registerComponent
+ * @private
  */
 function registerComponent(module: ng.IModule, component: ng.IComponentController) {
-  const {name, options} = getComponentMetadata(component);
+  const { name, options } = getComponentMetadata(component);
   module.component(name, options);
 }
 
+/**
+ * registerDirective
+ * @private
+ */
 function registerDirective(module: ng.IModule, ctrl: DirectiveControllerConstructor) {
-  const {name, options} = getComponentMetadata(ctrl);
-  const {compile, link} = ctrl.prototype;
+  const { name, options } = getComponentMetadata(ctrl);
+  const { compile, link } = ctrl.prototype;
   const isValid = compile && typeof compile === 'function' || link && typeof link === 'function';
   if (isValid) {
     const directiveFunc = (...args: Array<any>) => {
@@ -226,12 +307,16 @@ function registerDirective(module: ng.IModule, ctrl: DirectiveControllerConstruc
     directiveFunc.$inject = directiveFunc.$inject || annotate(ctrl);
     module.directive(name, directiveFunc);
   } else {
-    console.error(`Directive ${ctrl.name} was not registered because no link or compile methods were provided`);
+    console && console.error(`Directive ${ctrl.name} was not registered because no link or compile methods were provided`);
   }
 }
 
+/**
+ * registerPipe
+ * @private
+ */
 function registerPipe(module: ng.IModule, filter: PipeTransformConstructor) {
-  const {name} = getNameMetadata(filter);
+  const { name } = getNameMetadata(filter);
   const filterFunc = (...args: Array<any>) => {
     const instance = new filter(args);
     return instance.transform.bind(instance);
@@ -240,9 +325,13 @@ function registerPipe(module: ng.IModule, filter: PipeTransformConstructor) {
   module.filter(name, filterFunc);
 }
 
+/**
+ * registerServices
+ * @private
+ */
 function registerServices(module: ng.IModule, services: Array<ng.IServiceProvider | ng.Injectable<Function>>) {
   services.forEach((service: any) => {
-    const {name} = getNameMetadata(service);
+    const { name } = getNameMetadata(service);
     service.$inject = service.$inject || annotate(service);
     if (service.prototype.$get) {
       module.provider(name, service);
@@ -252,6 +341,10 @@ function registerServices(module: ng.IModule, services: Array<ng.IServiceProvide
   });
 }
 
+/**
+ * getComponentMetadata
+ * @private
+ */
 function getComponentMetadata(component: ng.IComponentController) {
   return {
     name: Reflect.getMetadata(nameSymbol, component),
@@ -259,16 +352,28 @@ function getComponentMetadata(component: ng.IComponentController) {
   };
 }
 
+/**
+ * getNameMetadata
+ * @private
+ */
 function getNameMetadata(service: any) {
   return {
     name: Reflect.getMetadata(nameSymbol, service)
   };
 }
 
+/**
+ * getDeclarationType
+ * @private
+ */
 function getDeclarationType(declaration: any) {
   return Reflect.getMetadata(typeSymbol, declaration);
 }
 
+/**
+ * addBindingToMetadata
+ * @private
+ */
 function addBindingToMetadata(target: Object, key: string, direction: string, alias?: string) {
   const targetConstructor = target.constructor;
   const bindings = Reflect.getMetadata(bindingsSymbol, targetConstructor) || {};
@@ -276,6 +381,11 @@ function addBindingToMetadata(target: Object, key: string, direction: string, al
   Reflect.defineMetadata(bindingsSymbol, bindings, targetConstructor);
 }
 
+/**
+ * annotate
+ * @private
+ * @param {any} func Function to annotate.
+ */
 function annotate(func: any) {
   return angular.injector().annotate(func);
 }

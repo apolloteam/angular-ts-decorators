@@ -8,8 +8,9 @@
     "moduleResolution": "node",
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    "noLib": false,
-    "preserveConstEnums": true
+    "noLib": false,    
+    "preserveConstEnums": true,
+    "noEmitHelpers": true    
   },
   "files": [
     "angular-ts-decorators.ts"

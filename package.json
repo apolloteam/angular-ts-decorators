@@ -1,6 +1,7 @@
 {
   "name": "angular-ts-decorators",
-  "version": "0.0.19",
+  "license" : "MIT",
+  "version": "0.0.20",
   "author": {
     "name": "Vlad Sternbach",
     "email": "vlad.sternbach@gmail.com",
@@ -35,9 +36,9 @@
     "reflect-metadata": "^0.1.8"
   },
   "devDependencies": {
-    "@types/angular": "^1.5.20",
-    "angular": "^1.6.0",
-    "typescript": "^2.1.4"
+    "@types/angular": "^1.6.25",
+    "angular": "^1.6.4",
+    "typescript": "^2.4.1"
   },
   "peerDependencies": {
     "angular": ">=1.5.0"
