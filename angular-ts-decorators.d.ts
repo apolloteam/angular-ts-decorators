@@ -1,5 +1,5 @@
 /// <reference types="angular" />
-import * as angular from 'angular';
+import angular from 'angular';
 import 'reflect-metadata';
 /**
  * When targeting es5, name doesn't exist on Function interface

@@ -1,5 +1,5 @@
 'use strict';
-import * as angular from 'angular';
+import angular from 'angular';
 import 'reflect-metadata';
 
 /**

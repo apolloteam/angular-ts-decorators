@@ -1,7 +1,7 @@
 {
   "name": "angular-ts-decorators",
   "license" : "MIT",
-  "version": "0.0.20",
+  "version": "0.0.21",
   "author": {
     "name": "Vlad Sternbach",
     "email": "vlad.sternbach@gmail.com",
@@ -9,9 +9,9 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/vsternbach/angular-ts-decorators.git"
+    "url": "git+https://github.com/apolloteam/angular-ts-decorators.git"
   },
-  "homepage": "https://github.com/vsternbach/angular-ts-decorators",
+  "homepage": "https://github.com/apolloteam/angular-ts-decorators",
   "keywords": [
     "anguar decorators",
     "anguar-decorators",
@@ -41,7 +41,7 @@
     "typescript": "^2.4.1"
   },
   "peerDependencies": {
-    "angular": ">=1.5.0"
+    "angular": ">=1.5.x"
   },
   "scripts": {
     "prepublish": "tsc"

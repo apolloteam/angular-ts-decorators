@@ -10,7 +10,7 @@ System.register(["angular", "reflect-metadata"], function (exports_1, context_1)
         return function (Class) {
             // module registration
             var deps = imports ? imports.map(function (mod) { return typeof mod === 'string' ? mod : mod.name; }) : [];
-            var module = angular.module(Class.name, deps);
+            var module = angular_1.default.module(Class.name, deps);
             // components, directives and filters registration
             declarations.forEach(function (declaration) {
                 var declarationType = getDeclarationType(declaration);
@@ -242,13 +242,13 @@ System.register(["angular", "reflect-metadata"], function (exports_1, context_1)
      * @param {any} func Function to annotate.
      */
     function annotate(func) {
-        return angular.injector().annotate(func);
+        return angular_1.default.injector().annotate(func);
     }
-    var angular, Declarations, typeSymbol, nameSymbol, bindingsSymbol, optionsSymbol;
+    var angular_1, Declarations, typeSymbol, nameSymbol, bindingsSymbol, optionsSymbol;
     return {
         setters: [
-            function (angular_1) {
-                angular = angular_1;
+            function (angular_1_1) {
+                angular_1 = angular_1_1;
             },
             function (_1) {
             }
