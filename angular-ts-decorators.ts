@@ -295,7 +295,7 @@ function registerDirective(module: ng.IModule, ctrl: DirectiveControllerConstruc
   if (isValid) {
     const directiveFunc = (...args: Array<any>) => {
       // const instance = new ctrl(args);
-      const instance = (ctrl.bind.apply(ctrl, [null].concat(args)))();
+      const instance = new (ctrl.bind.apply(ctrl, [null].concat(args)))();
       if (compile) {
         options.compile = compile.bind(instance);
       }

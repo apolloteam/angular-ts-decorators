@@ -152,7 +152,7 @@ System.register(["angular", "reflect-metadata"], function (exports_1, context_1)
                     args[_i] = arguments[_i];
                 }
                 // const instance = new ctrl(args);
-                var instance = (ctrl.bind.apply(ctrl, [null].concat(args)))();
+                var instance = new (ctrl.bind.apply(ctrl, [null].concat(args)))();
                 if (compile) {
                     options.compile = compile.bind(instance);
                 }
