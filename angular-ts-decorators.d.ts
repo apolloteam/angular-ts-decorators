@@ -15,13 +15,13 @@ declare global  {
  * @export
  */
 export interface ModuleConfig {
-    declarations: Array<ng.IComponentController | ng.Injectable<ng.IDirectiveFactory> | PipeTransform>;
+    declarations: Array<angular.IComponentController | angular.Injectable<angular.IDirectiveFactory> | PipeTransform>;
     imports?: Array<string | Function>;
     exports?: Array<Function>;
-    providers?: Array<ng.IServiceProvider | ng.Injectable<Function>>;
+    providers?: Array<angular.IServiceProvider | angular.Injectable<Function>>;
     constants?: Object;
     decorators?: {
-        [name: string]: ng.Injectable<Function>;
+        [name: string]: angular.Injectable<Function>;
     };
 }
 /**
@@ -30,7 +30,7 @@ export interface ModuleConfig {
  */
 export interface ModuleDecoratedConstructor {
     new (...args: Array<any>): ModuleDecorated;
-    module?: ng.IModule;
+    module?: angular.IModule;
 }
 /**
  * ModuleDecorated
@@ -46,8 +46,17 @@ export interface ModuleDecorated {
  */
 export interface ComponentOptionsDecorated {
     selector: string;
-    template?: string | ng.Injectable<(...args: Array<any>) => string>;
-    templateUrl?: string | ng.Injectable<(...args: Array<any>) => string>;
+    /**
+     * HTML markup.
+     * Replace the contents of the directive's element.
+     * @memberof ComponentOptionsDecorated
+     */
+    template?: string | angular.Injectable<(...args: Array<any>) => string>;
+    /**
+     * This is similar to template but the template is loaded from the specified URL, asynchronously.
+     * @memberof ComponentOptionsDecorated
+     */
+    templateUrl?: string | angular.Injectable<(...args: Array<any>) => string>;
     transclude?: boolean | {
         [slot: string]: string;
     };
@@ -55,6 +64,8 @@ export interface ComponentOptionsDecorated {
         [controller: string]: string;
     };
     controllerAs?: string;
+    styleUrls?: string | string[];
+    styles?: string | string[];
 }
 /**
  * DirectiveOptionsDecorated
@@ -85,9 +96,9 @@ export interface DirectiveOptionsDecorated {
     scope?: boolean | {
         [boundProperty: string]: string;
     };
-    template?: string | ((tElement: JQuery, tAttrs: ng.IAttributes) => string);
+    template?: string | ((tElement: JQuery, tAttrs: angular.IAttributes) => string);
     templateNamespace?: string;
-    templateUrl?: string | ((tElement: JQuery, tAttrs: ng.IAttributes) => string);
+    templateUrl?: string | ((tElement: JQuery, tAttrs: angular.IAttributes) => string);
     terminal?: boolean;
     transclude?: boolean | 'element' | {
         [slot: string]: string;
@@ -108,8 +119,8 @@ export interface DirectiveControllerConstructor {
  * @export
  */
 export interface DirectiveController {
-    compile?: ng.IDirectiveCompileFn;
-    link?: ng.IDirectiveLinkFn | ng.IDirectivePrePost;
+    compile?: angular.IDirectiveCompileFn;
+    link?: angular.IDirectiveLinkFn | angular.IDirectivePrePost;
 }
 /**
  * PipeTransformConstructor
@@ -129,7 +140,7 @@ export interface PipeTransform {
  * NgModule
  * @export
  */
-export declare function NgModule({declarations, imports, providers}: ModuleConfig): (Class: ModuleDecoratedConstructor) => void;
+export declare function NgModule(moduleConfig: ModuleConfig): (Class: ModuleDecoratedConstructor) => void;
 /**
  * Component
  * @export

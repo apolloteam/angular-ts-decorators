@@ -5,9 +5,9 @@ System.register(["angular", "reflect-metadata"], function (exports_1, context_1)
      * NgModule
      * @export
      */
-    function NgModule(_a) {
-        var declarations = _a.declarations, imports = _a.imports, providers = _a.providers;
+    function NgModule(moduleConfig) {
         return function (Class) {
+            var declarations = moduleConfig.declarations, imports = moduleConfig.imports, providers = moduleConfig.providers;
             // module registration
             var deps = imports ? imports.map(function (mod) { return typeof mod === 'string' ? mod : mod.name; }) : [];
             var module = angular_1.default.module(Class.name, deps);
@@ -135,7 +135,63 @@ System.register(["angular", "reflect-metadata"], function (exports_1, context_1)
      */
     function registerComponent(module, component) {
         var _a = getComponentMetadata(component), name = _a.name, options = _a.options;
+        var styles = options.styles, styleUrls = options.styleUrls, controller = options.controller;
+        var head = document.getElementsByTagName('head')[0];
+        // const dataAttr: string = 'data-ts-decorator-css';
+        var dataAttr = 'ts-decorator-css';
+        if (angular_1.default.isDefined(styles)) {
+            var stylesArr = angular_1.default.isArray(styles) ? styles : [styles];
+            var newStyle = stylesArr.reduce(function (a, b) { return a + b; });
+            if (newStyle.length) {
+                var styleTags = head.getElementsByTagName('style');
+                var existingStyles = filter(styleTags, function (link) { return angular_1.default.element(link).data(dataAttr) === controller.name; });
+                if (!existingStyles.length) {
+                    var style = document.createElement('style');
+                    style.type = 'text/css';
+                    style.media = 'all';
+                    // style.setAttribute(dataAttr, controller.name);
+                    angular_1.default.element(style).data(dataAttr, controller.name);
+                    style.innerHTML = newStyle;
+                    head.appendChild(style);
+                }
+            }
+        }
+        if (angular_1.default.isDefined(styleUrls)) {
+            var styleUrlsArr = angular_1.default.isArray(styleUrls) ? styleUrls : [styleUrls];
+            var uniq_1 = {};
+            styleUrlsArr.filter(function (item) {
+                var ret;
+                if (!angular_1.default.isDefined(uniq_1[item])) {
+                    uniq_1[item] = 1;
+                }
+                else {
+                    uniq_1[item] += 1;
+                }
+                return uniq_1[item] === 1;
+            }).forEach(function (url) {
+                var existingLinks = findExistingCSS(head, url);
+                if (!existingLinks.length) {
+                    var link = document.createElement('link');
+                    link.type = 'text/css';
+                    link.rel = 'stylesheet';
+                    link.href = url;
+                    // link.setAttribute('data-ts-decorator-css', controller.name);
+                    angular_1.default.element(link).data(dataAttr, controller.name);
+                    head.appendChild(link);
+                }
+            });
+            Object.keys(uniq_1).forEach(function (key) {
+                if (uniq_1[key] > 1) {
+                    console && console.warn('Attempt to load the %o file %o times from the %o component.', key, uniq_1[key], controller.name);
+                }
+            });
+        }
         module.component(name, options);
+    }
+    function findExistingCSS(head, url) {
+        // Search for existing link to reload
+        var links = head.getElementsByTagName('link');
+        return filter(links, function (link) { return link.href === url; });
     }
     /**
      * registerDirective
@@ -244,6 +300,21 @@ System.register(["angular", "reflect-metadata"], function (exports_1, context_1)
      */
     function annotate(func) {
         return angular_1.default.injector().annotate(func);
+    }
+    // Because IE8?
+    function filter(arrayLike, func) {
+        var arr = [];
+        forEach(arrayLike, function (item) {
+            if (func(item))
+                arr.push(item);
+        });
+        return arr;
+    }
+    // Because IE8?
+    function forEach(arrayLike, func) {
+        for (var i = 0; i < arrayLike.length; i++) {
+            func(arrayLike[i]);
+        }
     }
     var angular_1, Declarations, typeSymbol, nameSymbol, bindingsSymbol, optionsSymbol;
     return {

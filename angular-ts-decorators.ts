@@ -14,22 +14,22 @@ declare global {
 
 enum Declarations { component, directive, pipe }
 
-const typeSymbol = 'custom:type';
-const nameSymbol = 'custom:name';
-const bindingsSymbol = 'custom:bindings';
-const optionsSymbol = 'custom:options';
+const typeSymbol: string = 'custom:type';
+const nameSymbol: string = 'custom:name';
+const bindingsSymbol: string = 'custom:bindings';
+const optionsSymbol: string = 'custom:options';
 
 /**
  * ModuleConfig
  * @export
  */
 export interface ModuleConfig {
-  declarations: Array<ng.IComponentController | ng.Injectable<ng.IDirectiveFactory> | PipeTransform>;
+  declarations: Array<angular.IComponentController | angular.Injectable<angular.IDirectiveFactory> | PipeTransform>;
   imports?: Array<string | Function>;
   exports?: Array<Function>;
-  providers?: Array<ng.IServiceProvider | ng.Injectable<Function>>;
+  providers?: Array<angular.IServiceProvider | angular.Injectable<Function>>;
   constants?: Object;
-  decorators?: { [name: string]: ng.Injectable<Function> };
+  decorators?: { [name: string]: angular.Injectable<Function> };
 }
 
 /**
@@ -37,8 +37,8 @@ export interface ModuleConfig {
  * @export
  */
 export interface ModuleDecoratedConstructor {
-  new (...args: Array<any>): ModuleDecorated;
-  module?: ng.IModule;
+  new(...args: Array<any>): ModuleDecorated;
+  module?: angular.IModule;
 }
 
 /**
@@ -56,11 +56,25 @@ export interface ModuleDecorated {
  */
 export interface ComponentOptionsDecorated {
   selector: string;
-  template?: string | ng.Injectable<(...args: Array<any>) => string>;
-  templateUrl?: string | ng.Injectable<(...args: Array<any>) => string>;
+
+  /**
+   * HTML markup.
+   * Replace the contents of the directive's element.
+   * @memberof ComponentOptionsDecorated
+   */
+  template?: string | angular.Injectable<(...args: Array<any>) => string>;
+
+  /**
+   * This is similar to template but the template is loaded from the specified URL, asynchronously.
+   * @memberof ComponentOptionsDecorated
+   */
+  templateUrl?: string | angular.Injectable<(...args: Array<any>) => string>;
   transclude?: boolean | { [slot: string]: string };
   require?: { [controller: string]: string };
   controllerAs?: string;
+  styleUrls?: string | string[];
+
+  styles?: string | string[];
 }
 
 /**
@@ -89,9 +103,9 @@ export interface DirectiveOptionsDecorated {
   priority?: number;
   require?: string | string[] | { [controller: string]: string };
   scope?: boolean | { [boundProperty: string]: string };
-  template?: string | ((tElement: JQuery, tAttrs: ng.IAttributes) => string);
+  template?: string | ((tElement: JQuery, tAttrs: angular.IAttributes) => string);
   templateNamespace?: string;
-  templateUrl?: string | ((tElement: JQuery, tAttrs: ng.IAttributes) => string);
+  templateUrl?: string | ((tElement: JQuery, tAttrs: angular.IAttributes) => string);
   terminal?: boolean;
   transclude?: boolean | 'element' | { [slot: string]: string };
   controllerAs?: string;
@@ -104,7 +118,7 @@ export interface DirectiveOptionsDecorated {
  * @export
  */
 export interface DirectiveControllerConstructor {
-  new (...args: Array<any>): DirectiveController;
+  new(...args: Array<any>): DirectiveController;
 }
 
 /**
@@ -112,8 +126,8 @@ export interface DirectiveControllerConstructor {
  * @export
  */
 export interface DirectiveController {
-  compile?: ng.IDirectiveCompileFn;
-  link?: ng.IDirectiveLinkFn | ng.IDirectivePrePost;
+  compile?: angular.IDirectiveCompileFn;
+  link?: angular.IDirectiveLinkFn | angular.IDirectivePrePost;
 }
 
 /**
@@ -121,7 +135,7 @@ export interface DirectiveController {
  * @export
  */
 export interface PipeTransformConstructor {
-  new (...args: Array<any>): PipeTransform;
+  new(...args: Array<any>): PipeTransform;
 }
 
 /**
@@ -136,8 +150,10 @@ export interface PipeTransform {
  * NgModule
  * @export
  */
-export function NgModule({ declarations, imports, providers }: ModuleConfig) {
+export function NgModule(moduleConfig: ModuleConfig) {
   return (Class: ModuleDecoratedConstructor) => {
+    const { declarations, imports, providers } = moduleConfig;
+
     // module registration
     const deps: string[] = imports ? imports.map(mod => typeof mod === 'string' ? mod : mod.name) : [];
     const module: angular.IModule = angular.module(Class.name, deps);
@@ -193,8 +209,10 @@ export function NgModule({ declarations, imports, providers }: ModuleConfig) {
  * @export
  */
 export function Component(decoratedOptions: ComponentOptionsDecorated) {
-  return (ctrl: ng.IControllerConstructor) => {
-    const options: ng.IComponentOptions = { ...decoratedOptions };
+
+
+  return (ctrl: angular.IControllerConstructor) => {
+    const options: angular.IComponentOptions = <angular.IComponentOptions>{ ...decoratedOptions };
     options.controller = ctrl;
     options['$inject'] = annotate(ctrl);
     const bindings = Reflect.getMetadata(bindingsSymbol, ctrl);
@@ -214,7 +232,7 @@ export function Component(decoratedOptions: ComponentOptionsDecorated) {
  */
 export function Directive(decoratedOptions: DirectiveOptionsDecorated) {
   return (controller: DirectiveControllerConstructor) => {
-    const options: ng.IDirective = { ...decoratedOptions };
+    const options: angular.IDirective = <angular.IDirective>{ ...decoratedOptions };
 
     // 
     //// deprecate restrict for directives and force attribute usage only.
@@ -279,16 +297,82 @@ export function Pipe(options: { name: string }) {
  * registerComponent
  * @private
  */
-function registerComponent(module: ng.IModule, component: ng.IComponentController) {
+function registerComponent(module: angular.IModule, component: angular.IComponentController) {
   const { name, options } = getComponentMetadata(component);
+  const { styles, styleUrls, controller } = options;
+  const head: HTMLHeadElement = document.getElementsByTagName('head')[0];
+  // const dataAttr: string = 'data-ts-decorator-css';
+  const dataAttr: string = 'ts-decorator-css';
+  if (angular.isDefined(styles)) {    
+    const stylesArr: string[] = angular.isArray(styles) ? styles : [styles];
+    const newStyle: string = stylesArr.reduce((a: string, b: string) => a + b);
+    if (newStyle.length) {
+      const styleTags: NodeListOf<HTMLStyleElement> = head.getElementsByTagName('style')
+      const existingStyles = filter(styleTags, (link) => angular.element(link).data(dataAttr) === controller.name);
+      if (!existingStyles.length) {
+        const style: HTMLStyleElement = document.createElement('style');
+        style.type = 'text/css';
+        style.media = 'all'
+
+        // style.setAttribute(dataAttr, controller.name);
+        angular.element(style).data(dataAttr, controller.name);
+        style.innerHTML = newStyle;
+        head.appendChild(style);
+      }
+    }
+  }
+
+  if (angular.isDefined(styleUrls)) {
+    const styleUrlsArr: string[] = angular.isArray(styleUrls) ? styleUrls : [styleUrls];
+    const uniq: { [key: string]: number } = {};
+    styleUrlsArr.filter((item) => {
+      let ret: boolean;
+      if (!angular.isDefined(uniq[item])) {
+        uniq[item] = 1;
+      } else {
+        uniq[item] += 1;
+      }
+
+      return uniq[item] === 1;
+    }).forEach((url: string) => {
+      const existingLinks: NodeListOf<HTMLLinkElement> = findExistingCSS(head, url);
+      if (!existingLinks.length) {
+        const link = document.createElement('link');
+        link.type = 'text/css';
+        link.rel = 'stylesheet';
+        link.href = url;
+
+        // link.setAttribute('data-ts-decorator-css', controller.name);
+        angular.element(link).data(dataAttr, controller.name);
+        head.appendChild(link);
+      }
+    });
+
+    Object.keys(uniq).forEach((key) => {
+      if (uniq[key] > 1) {
+        console && console.warn(
+          'Attempt to load the %o file %o times from the %o component.',
+          key,
+          uniq[key],
+          controller.name);
+      }
+    });
+  }
+
   module.component(name, options);
+}
+
+function findExistingCSS(head: HTMLHeadElement, url: string): NodeListOf<HTMLLinkElement> {
+  // Search for existing link to reload
+  const links: NodeListOf<HTMLLinkElement> = head.getElementsByTagName('link');
+  return <any>filter(links, (link) => link.href === url);
 }
 
 /**
  * registerDirective
  * @private
  */
-function registerDirective(module: ng.IModule, ctrl: DirectiveControllerConstructor) {
+function registerDirective(module: angular.IModule, ctrl: DirectiveControllerConstructor) {
   const { name, options } = getComponentMetadata(ctrl);
   const { compile, link } = ctrl.prototype;
   const isValid = compile && typeof compile === 'function' || link && typeof link === 'function';
@@ -316,7 +400,7 @@ function registerDirective(module: ng.IModule, ctrl: DirectiveControllerConstruc
  * registerPipe
  * @private
  */
-function registerPipe(module: ng.IModule, filter: PipeTransformConstructor) {
+function registerPipe(module: angular.IModule, filter: PipeTransformConstructor) {
   const { name } = getNameMetadata(filter);
   const filterFunc = (...args: Array<any>) => {
     const instance = new filter(args);
@@ -330,7 +414,7 @@ function registerPipe(module: ng.IModule, filter: PipeTransformConstructor) {
  * registerServices
  * @private
  */
-function registerServices(module: ng.IModule, services: Array<ng.IServiceProvider | ng.Injectable<Function>>) {
+function registerServices(module: angular.IModule, services: Array<angular.IServiceProvider | angular.Injectable<Function>>) {
   services.forEach((service: any) => {
     const { name } = getNameMetadata(service);
     service.$inject = service.$inject || annotate(service);
@@ -346,7 +430,7 @@ function registerServices(module: ng.IModule, services: Array<ng.IServiceProvide
  * getComponentMetadata
  * @private
  */
-function getComponentMetadata(component: ng.IComponentController) {
+function getComponentMetadata(component: angular.IComponentController) {
   return {
     name: Reflect.getMetadata(nameSymbol, component),
     options: Reflect.getMetadata(optionsSymbol, component)
@@ -389,4 +473,21 @@ function addBindingToMetadata(target: Object, key: string, direction: string, al
  */
 function annotate(func: any) {
   return angular.injector().annotate(func);
+}
+
+// Because IE8?
+function filter(arrayLike, func) {
+  var arr = []
+  forEach(arrayLike, function (item) {
+    if (func(item))
+      arr.push(item);
+  });
+  return arr;
+}
+
+// Because IE8?
+function forEach(arrayLike, func) {
+  for (var i = 0; i < arrayLike.length; i++) {
+    func(arrayLike[i])
+  }
 }
