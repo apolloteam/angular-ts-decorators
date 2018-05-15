@@ -1,7 +1,7 @@
 {
   "name": "angular-ts-decorators",
   "license" : "MIT",
-  "version": "0.0.25",
+  "version": "0.0.26",
   "author": {
     "name": "Vlad Sternbach",
     "email": "vlad.sternbach@gmail.com",

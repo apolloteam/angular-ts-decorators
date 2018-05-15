@@ -171,13 +171,15 @@ System.register(["angular", "reflect-metadata"], function (exports_1, context_1)
             }).forEach(function (url) {
                 var existingLinks = findExistingCSS(head, url);
                 if (!existingLinks.length) {
-                    var link = document.createElement('link');
-                    link.type = 'text/css';
-                    link.rel = 'stylesheet';
-                    link.href = url;
+                    var link_1 = document.createElement('link');
+                    link_1.type = 'text/css';
+                    link_1.rel = 'stylesheet';
+                    link_1.media = 'only x';
+                    link_1.href = url;
+                    link_1.onload = function () { return link_1.media = 'all'; };
                     // link.setAttribute('data-ts-decorator-css', controller.name);
-                    angular_1.default.element(link).data(dataAttr, controller.name);
-                    head.appendChild(link);
+                    angular_1.default.element(link_1).data(dataAttr, controller.name);
+                    head.appendChild(link_1);
                 }
             });
             Object.keys(uniq_1).forEach(function (key) {

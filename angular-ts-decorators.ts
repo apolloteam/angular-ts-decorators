@@ -303,7 +303,7 @@ function registerComponent(module: angular.IModule, component: angular.IComponen
   const head: HTMLHeadElement = document.getElementsByTagName('head')[0];
   // const dataAttr: string = 'data-ts-decorator-css';
   const dataAttr: string = 'ts-decorator-css';
-  if (angular.isDefined(styles)) {    
+  if (angular.isDefined(styles)) {
     const stylesArr: string[] = angular.isArray(styles) ? styles : [styles];
     const newStyle: string = stylesArr.reduce((a: string, b: string) => a + b);
     if (newStyle.length) {
@@ -340,7 +340,9 @@ function registerComponent(module: angular.IModule, component: angular.IComponen
         const link = document.createElement('link');
         link.type = 'text/css';
         link.rel = 'stylesheet';
+        link.media = 'only x';
         link.href = url;
+        link.onload = () => link.media = 'all';
 
         // link.setAttribute('data-ts-decorator-css', controller.name);
         angular.element(link).data(dataAttr, controller.name);
